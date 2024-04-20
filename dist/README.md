@@ -12,11 +12,11 @@ npm install bland-client-js-sdk
 
 # Usage
 
-`code
+```javascript
 import { BlandWebClient } from "bland-client-js-sdk";
 
 const sdk = new BlandWebClient(
     "agent_id", // your agent id here
     "session_token" // your session token here
 )
-`
+```
