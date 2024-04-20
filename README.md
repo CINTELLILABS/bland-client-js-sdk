@@ -22,8 +22,7 @@ const sdk = new BlandWebClient(
     "session_token" // your session token here
 )
 ```
-
-##### Start the conversation
+### Start the conversation
 
 ```javascript
 sdk.initConversation({
@@ -31,8 +30,68 @@ sdk.initConversation({
 });
 ```
 
-##### Stop the conversation
+### Stop the conversation
 
 ```javascript
 sdk.stopConversation();
 ```
+# Generating an Agent Id and Session Tokens;
+
+### 1. Create an Agent Id:
+```javascript
+const generateAgent = async () => {
+    // Make a request to Bland servers to create a new Agent.
+    const response = await fetch(`https://web.bland.ai/v1/agents`, {
+        method: "POST",
+        body: JSON.stringify({
+            prompt: "Hello World!"
+        }),
+        headers: {
+            "Content-type": "application/json",
+            "Authorization": "YOUR_API_KEY"
+        }
+    });
+
+    const data = await response.json();
+    return data.agent_id;
+};
+```
+
+##### Example Response:
+```json
+{
+  "agent": {
+    "agent_id": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+    ...
+  }
+}
+```
+
+### 2. Generate Session Token from Agent Id:
+
+```javascript
+const generateSessionToken = async () => {
+    // Make a request to Bland servers to create a new Session Token for an Agent Id.
+    const response = await fetch(`https://web.bland.ai/v1/agents/:agent_id/authorize`, {
+        method: "POST",
+        headers: {
+            "Authorization": "YOUR_API_KEY"
+        }
+    });
+
+    const data = await response.json();
+    return data.token;
+};
+```
+##### Example Response:
+```json
+{
+  "token": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+}
+```
+
+---
+
+### Need Help?
+
+Join our [discord](https://discord.com/invite/8xGGg2KfH7) for  support! Our docs are also available [here](https://www.google.com).
