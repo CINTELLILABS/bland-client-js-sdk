@@ -53,7 +53,7 @@ const generateAgent = async () => {
     });
 
     const data = await response.json();
-    return data.agent_id;
+    return data.agent.agent_id;
 };
 ```
 
@@ -94,4 +94,4 @@ const generateSessionToken = async () => {
 
 ### Need Help?
 
-Join our [discord](https://discord.com/invite/8xGGg2KfH7) for  support! Our docs are also available [here](https://www.google.com).
+Join our [discord](https://discord.com/invite/8xGGg2KfH7) for  support! Our docs are also available [here](https://docs.bland.ai).
