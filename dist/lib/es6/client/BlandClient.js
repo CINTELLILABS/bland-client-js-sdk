@@ -52,7 +52,9 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
 import { EventEmitter } from "eventemitter3";
 import Websocket from "isomorphic-ws";
 import { workletCode } from "./audioWorklet";
-var baseEndpoint = "wss://web.bland.ai";
+var baseEndpoint = "wss://api.staging.bland.ai";
+;
+;
 ;
 function convertUint8ToFloat32(array) {
     var targetArray = new Float32Array(array.byteLength / 2);
@@ -75,6 +77,7 @@ function convertFloat32ToUint8(array) {
 }
 var AudioWsClient = /** @class */ (function (_super) {
     __extends(AudioWsClient, _super);
+    // when last mark, end the conversation;
     function AudioWsClient(audioWsConfig) {
         var _this = _super.call(this) || this;
         _this.pingTimeout = null;
@@ -82,45 +85,62 @@ var AudioWsClient = /** @class */ (function (_super) {
         _this.wasDisconnected = false;
         _this.pingIntervalTime = 5000;
         _this.audioIndex = 0;
+        _this.marks = [];
         var endpoint = baseEndpoint + "?agent=".concat(audioWsConfig.agentId, "&token=").concat(audioWsConfig.sessionToken);
         _this.ws = new Websocket(endpoint);
         _this.ws.binaryType = "arraybuffer";
         _this.ws.onopen = function () {
             _this.emit("open");
+            // this.startPingPong();
         };
         _this.ws.onmessage = function (event) {
-            try {
-                var data = JSON.parse(event.data);
-                // this will be for handling mark messages
-            }
-            catch (error) {
-                //console.log({ error });
-            }
-            ;
             if (typeof event.data === "string" && event.data === "pong") {
-                _this.resetPingTimeout();
+                if (_this.wasDisconnected) {
+                    _this.emit("reconnect");
+                    _this.wasDisconnected = false;
+                }
+                ;
+                _this.adjustPingFrequency(5000);
             }
             else if (event.data instanceof ArrayBuffer) {
                 var audioData = new Uint8Array(event.data);
+                _this.audioIndex++;
                 _this.emit("audio", audioData);
             }
             else if (typeof (event.data) === "string") {
                 if (event.data === "clear") {
                     _this.emit("clear");
                 }
+                else {
+                    var messageData = JSON.parse(event.data);
+                    var eventName = messageData.event;
+                    var markName = messageData.mark.name;
+                    if (eventName === "mark") {
+                        _this.emit("mark", markName);
+                    }
+                    ;
+                }
                 ;
             }
             ;
         };
         _this.ws.onclose = function (event) {
-            _this.emit("disconnect");
+            // this.stopPingPong();
             _this.emit("close", event.code, event.reason);
         };
         _this.ws.onerror = function (event) {
+            // this.stopPingPong();
             _this.emit("error", event);
         };
         return _this;
     }
+    ;
+    AudioWsClient.prototype.sendPing = function () {
+        if (this.ws.readyState === 1) {
+            this.ws.send("ping");
+        }
+        ;
+    };
     ;
     AudioWsClient.prototype.resetPingTimeout = function () {
         var _this = this;
@@ -154,6 +174,13 @@ var AudioWsClient = /** @class */ (function (_super) {
         ;
     };
     ;
+    AudioWsClient.prototype.sendUtf = function (message) {
+        if (this.ws.readyState === 1) {
+            this.ws.send(message);
+        }
+        ;
+    };
+    ;
     AudioWsClient.prototype.close = function () {
         this.ws.close();
     };
@@ -171,6 +198,7 @@ var BlandWebClient = /** @class */ (function (_super) {
         _this.audioData = [];
         _this.audioDataIndex = 0;
         _this.isTalking = false;
+        _this.marks = [];
         if (customEndpoint)
             _this.customEndpoint = customEndpoint;
         _this.agentId = agentId;
@@ -272,13 +300,12 @@ var BlandWebClient = /** @class */ (function (_super) {
                         this.audioContext.resume();
                         blob = new Blob([workletCode], { type: "application/javascript" });
                         blobUrl = URL.createObjectURL(blob);
-                        console.log({ blobUrl: blobUrl });
                         return [4 /*yield*/, this.audioContext.audioWorklet.addModule(blobUrl)];
                     case 6:
                         _c.sent();
                         this.audioNode = new AudioWorkletNode(this.audioContext, "capture-and-playback-processor");
                         this.audioNode.port.onmessage = function (event) {
-                            var _a;
+                            var _a, _b;
                             var data = event.data;
                             if (Array.isArray(data)) {
                                 var eventName = data[0];
@@ -288,6 +315,15 @@ var BlandWebClient = /** @class */ (function (_super) {
                                 else if (eventName === "playback") {
                                     _this.emit("audio", data[1]);
                                 }
+                                else if (eventName === "mark") {
+                                    (_b = _this.liveClient) === null || _b === void 0 ? void 0 : _b.sendUtf(JSON.stringify({
+                                        event: "mark",
+                                        mark: {
+                                            name: data[1]
+                                        }
+                                    }));
+                                }
+                                else { }
                                 ;
                             }
                             else {
@@ -341,6 +377,7 @@ var BlandWebClient = /** @class */ (function (_super) {
                                 _this.emit("audio", convertFloat32ToUint8(outputChannel));
                                 if (!_this.audioData.length && _this.isTalking) {
                                     _this.isTalking = false;
+                                    _this.clearMarkMessages();
                                     _this.emit("agentStopTalking");
                                 }
                                 ;
@@ -390,6 +427,26 @@ var BlandWebClient = /** @class */ (function (_super) {
         this.liveClient.on("update", function (update) {
             _this.emit("update", update);
         });
+        this.liveClient.on("mark", function (mark) {
+            if (_this.isAudioWorkletSupported()) {
+                _this.audioNode.port.postMessage(mark);
+            }
+            else {
+                if (!_this.isTalking) {
+                    _this.liveClient.sendUtf(JSON.stringify({
+                        event: "mark",
+                        mark: {
+                            name: mark
+                        }
+                    }));
+                }
+                else {
+                    _this.marks.push(mark);
+                }
+                ;
+            }
+            ;
+        });
         // Not exposed
         this.liveClient.on("clear", function () {
             if (_this.isAudioWorkletSupported()) {
@@ -400,12 +457,25 @@ var BlandWebClient = /** @class */ (function (_super) {
                 _this.audioDataIndex = 0;
                 if (_this.isTalking) {
                     _this.isTalking = false;
+                    _this.clearMarkMessages();
                     _this.emit("agentStopTalking");
                 }
             }
         });
     };
     ;
+    BlandWebClient.prototype.clearMarkMessages = function () {
+        for (var _i = 0, _a = this.marks; _i < _a.length; _i++) {
+            var message = _a[_i];
+            this.liveClient.sendUtf(JSON.stringify({
+                event: "mark",
+                mark: {
+                    name: message
+                }
+            }));
+        }
+        this.marks = [];
+    };
     BlandWebClient.prototype.isAudioWorkletSupported = function () {
         return (/Chrome/.test(navigator.userAgent) && /Google Inc/.test(navigator.vendor));
     };
