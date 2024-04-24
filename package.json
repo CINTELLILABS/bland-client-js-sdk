@@ -1,8 +1,8 @@
 {
   "name": "bland",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "author": "Bland corp",
-  "license":"MIT",
+  "license": "MIT",
   "scripts": {
     "compile": "rm -rf dist/lib && rm -rf test/dist && tsc && tsc --build tsconfig.es5.json --force --watch"
   },
