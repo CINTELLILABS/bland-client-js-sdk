@@ -210,6 +210,10 @@ var BlandWebClient = /** @class */ (function (_super) {
         return _this;
     }
     ;
+    BlandWebClient.prototype.isTalkingToAgent = function () {
+        return this.isTalking;
+    };
+    ;
     // bland initialize();
     BlandWebClient.prototype.initConversation = function (config) {
         return __awaiter(this, void 0, void 0, function () {
@@ -332,9 +336,11 @@ var BlandWebClient = /** @class */ (function (_super) {
                             else {
                                 if (data === "agent_stop_talking") {
                                     _this.emit("agentStopTalking");
+                                    _this.emit("userStartTalking");
                                 }
                                 else if (data === "agent_start_talking") {
                                     _this.emit("agentStartTalking");
+                                    _this.emit("userStopTalking");
                                 }
                                 ;
                             }

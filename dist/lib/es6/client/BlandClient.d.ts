@@ -21,6 +21,7 @@ export declare class BlandWebClient extends EventEmitter {
     private agentId;
     private sessionToken;
     constructor(agentId: string, sessionToken: string, customEndpoint?: string);
+    isTalkingToAgent(): boolean;
     initConversation(config: StartConversationConfig): Promise<void>;
     stopConversation(): void;
     private setupAudioPlayback;
