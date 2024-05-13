@@ -208,7 +208,7 @@ var BlandWebClient = /** @class */ (function (_super) {
         _this.isTalking = false;
         _this.marks = [];
         _this.transcripts = [];
-        _this.lastTranscriptUser = "assistant";
+        _this.lastProcessId = "";
         if (customEndpoint)
             _this.customEndpoint = customEndpoint;
         _this.agentId = agentId;
@@ -461,17 +461,10 @@ var BlandWebClient = /** @class */ (function (_super) {
             ;
         });
         this.liveClient.on("update", function (update) {
-            var payload = update === null || update === void 0 ? void 0 : update.payload;
-            if (!(payload === null || payload === void 0 ? void 0 : payload.complete) ||
-                !(payload === null || payload === void 0 ? void 0 : payload.packetId) ||
-                (payload === null || payload === void 0 ? void 0 : payload.text) === "" ||
-                (payload === null || payload === void 0 ? void 0 : payload.text.length) === 0 ||
-                !(payload === null || payload === void 0 ? void 0 : payload.text))
+            if (!(update === null || update === void 0 ? void 0 : update.payload))
                 return;
-            if ((payload === null || payload === void 0 ? void 0 : payload.complete) && (payload === null || payload === void 0 ? void 0 : payload.packetId)) {
-                _this.emit("transcripts", payload);
-            }
-            ;
+            // this.handleNewUpdate(update?.payload as Transcript);
+            _this.emit("transcripts", update === null || update === void 0 ? void 0 : update.payload);
         });
         // Not exposed
         this.liveClient.on("clear", function () {
@@ -488,6 +481,26 @@ var BlandWebClient = /** @class */ (function (_super) {
                 }
             }
         });
+    };
+    ;
+    BlandWebClient.prototype.handleNewUpdate = function (in_transcript) {
+        var _a;
+        if (!in_transcript.processId ||
+            !in_transcript.packetId ||
+            !in_transcript.text ||
+            ((_a = in_transcript.text) === null || _a === void 0 ? void 0 : _a.length) === 0)
+            return;
+        var cachedTx = this.transcripts.find(function (transcript) { return (transcript.processId === in_transcript.processId &&
+            transcript.type === in_transcript.type); }) || null;
+        if (!cachedTx) {
+            this.transcripts.push(in_transcript);
+            cachedTx = in_transcript;
+        }
+        else {
+            cachedTx.text += " ".concat(in_transcript.text);
+            cachedTx.complete = in_transcript.complete;
+        }
+        ;
     };
     ;
     BlandWebClient.prototype.clearMarkMessages = function () {

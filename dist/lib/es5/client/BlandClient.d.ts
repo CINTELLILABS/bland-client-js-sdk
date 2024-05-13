@@ -19,7 +19,7 @@ export declare class BlandWebClient extends EventEmitter {
     isTalking: boolean;
     private marks;
     private transcripts;
-    private lastTranscriptUser;
+    private lastProcessId;
     private agentId;
     private sessionToken;
     constructor(agentId: string, sessionToken: string, customEndpoint?: string);
@@ -28,6 +28,7 @@ export declare class BlandWebClient extends EventEmitter {
     stopConversation(): void;
     private setupAudioPlayback;
     private handleAudioEvents;
+    private handleNewUpdate;
     private clearMarkMessages;
     private isAudioWorkletSupported;
     private playAudio;
