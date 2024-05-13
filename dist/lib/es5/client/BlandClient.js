@@ -59,6 +59,7 @@ var baseEndpoint = "wss://api.staging.bland.ai";
 ;
 ;
 ;
+;
 function convertUint8ToFloat32(array) {
     var targetArray = new Float32Array(array.byteLength / 2);
     // A DataView is used to read our 16-bit little-endian samples out of the Uint8Array buffer
@@ -97,6 +98,7 @@ var AudioWsClient = /** @class */ (function (_super) {
             // this.startPingPong();
         };
         _this.ws.onmessage = function (event) {
+            var _a;
             if (typeof event.data === "string" && event.data === "pong") {
                 if (_this.wasDisconnected) {
                     _this.emit("reconnect");
@@ -116,10 +118,13 @@ var AudioWsClient = /** @class */ (function (_super) {
                 }
                 else {
                     var messageData = JSON.parse(event.data);
-                    var eventName = messageData.event;
-                    var markName = messageData.mark.name;
+                    var eventName = messageData === null || messageData === void 0 ? void 0 : messageData.event;
+                    var markName = (_a = messageData === null || messageData === void 0 ? void 0 : messageData.mark) === null || _a === void 0 ? void 0 : _a.name;
                     if (eventName === "mark") {
                         _this.emit("mark", markName);
+                    }
+                    else if (eventName === "update") {
+                        _this.emit("update", messageData);
                     }
                     ;
                 }
@@ -202,6 +207,8 @@ var BlandWebClient = /** @class */ (function (_super) {
         _this.audioDataIndex = 0;
         _this.isTalking = false;
         _this.marks = [];
+        _this.transcripts = [];
+        _this.lastTranscriptUser = "assistant";
         if (customEndpoint)
             _this.customEndpoint = customEndpoint;
         _this.agentId = agentId;
@@ -433,9 +440,6 @@ var BlandWebClient = /** @class */ (function (_super) {
             ;
             _this.emit("conversationEnded", { code: code, reason: reason });
         });
-        this.liveClient.on("update", function (update) {
-            _this.emit("update", update);
-        });
         this.liveClient.on("mark", function (mark) {
             if (_this.isAudioWorkletSupported()) {
                 _this.audioNode.port.postMessage(mark);
@@ -453,6 +457,19 @@ var BlandWebClient = /** @class */ (function (_super) {
                     _this.marks.push(mark);
                 }
                 ;
+            }
+            ;
+        });
+        this.liveClient.on("update", function (update) {
+            var payload = update === null || update === void 0 ? void 0 : update.payload;
+            if (!(payload === null || payload === void 0 ? void 0 : payload.complete) ||
+                !(payload === null || payload === void 0 ? void 0 : payload.packetId) ||
+                (payload === null || payload === void 0 ? void 0 : payload.text) === "" ||
+                (payload === null || payload === void 0 ? void 0 : payload.text.length) === 0 ||
+                !(payload === null || payload === void 0 ? void 0 : payload.text))
+                return;
+            if ((payload === null || payload === void 0 ? void 0 : payload.complete) && (payload === null || payload === void 0 ? void 0 : payload.packetId)) {
+                _this.emit("transcripts", payload);
             }
             ;
         });

@@ -18,6 +18,8 @@ export declare class BlandWebClient extends EventEmitter {
     private audioDataIndex;
     isTalking: boolean;
     private marks;
+    private transcripts;
+    private lastTranscriptUser;
     private agentId;
     private sessionToken;
     constructor(agentId: string, sessionToken: string, customEndpoint?: string);
