@@ -1,6 +1,6 @@
 {
     "name": "bland-client-js-sdk",
-    "version": "0.1.0",
+    "version": "0.1.1",
     "description": "The BlandJS SDK Client is a lightweight and straightforward JavaScript software development kit designed to streamline API calls within web applications.",
     "main": "lib/es5/index.js",
     "module": "lib/es6/index.js",
