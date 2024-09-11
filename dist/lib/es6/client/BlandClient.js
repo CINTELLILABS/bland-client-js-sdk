@@ -52,7 +52,7 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
 import { EventEmitter } from "eventemitter3";
 import Websocket from "isomorphic-ws";
 import { workletCode } from "./audioWorklet";
-var baseEndpoint = "wss://api.staging.bland.ai";
+var baseEndpoint = "wss://us.api.bland.ai";
 ;
 ;
 ;

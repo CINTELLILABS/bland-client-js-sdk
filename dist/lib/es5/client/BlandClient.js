@@ -55,7 +55,7 @@ exports.BlandWebClient = void 0;
 var eventemitter3_1 = require("eventemitter3");
 var isomorphic_ws_1 = require("isomorphic-ws");
 var audioWorklet_1 = require("./audioWorklet");
-var baseEndpoint = "wss://api.staging.bland.ai";
+var baseEndpoint = "wss://us.api.bland.ai";
 ;
 ;
 ;
