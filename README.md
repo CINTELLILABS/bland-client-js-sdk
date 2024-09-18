@@ -41,7 +41,7 @@ sdk.stopConversation();
 ```javascript
 const generateAgent = async () => {
     // Make a request to Bland servers to create a new Agent.
-    const response = await fetch(`https://web.bland.ai/v1/agents`, {
+    const response = await fetch(`https://api.bland.ai/v1/agents`, {
         method: "POST",
         body: JSON.stringify({
             prompt: "Hello World!"
@@ -72,7 +72,7 @@ const generateAgent = async () => {
 ```javascript
 const generateSessionToken = async () => {
     // Make a request to Bland servers to create a new Session Token for an Agent Id.
-    const response = await fetch(`https://web.bland.ai/v1/agents/:agent_id/authorize`, {
+    const response = await fetch(`https://api.bland.ai/v1/agents/:agent_id/authorize`, {
         method: "POST",
         headers: {
             "Authorization": "YOUR_API_KEY"

@@ -1,0 +1,15 @@
+{
+  "name": "bland",
+  "version": "1.0.0",
+  "author": "Bland corp",
+  "license": "MIT",
+  "scripts": {
+    "compile": "rm -rf dist/lib && rm -rf test/dist && tsc && tsc --build tsconfig.es5.json --force --watch"
+  },
+  "dependencies": {
+    "eventemitter3": "^5.0.1",
+    "isomorphic-ws": "^5.0.0",
+    "react": "^18.3.1",
+    "typescript": "^5.4.5"
+  }
+}
