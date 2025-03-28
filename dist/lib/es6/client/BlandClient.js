@@ -87,7 +87,7 @@ var AudioWsClient = /** @class */ (function (_super) {
         _this.pingIntervalTime = 5000;
         _this.audioIndex = 0;
         _this.marks = [];
-        var endpoint = baseEndpoint + "?agent=".concat(audioWsConfig.agentId, "&token=").concat(audioWsConfig.sessionToken, "&background_noise=").concat(audioWsConfig.backgroundNoise);
+        var endpoint = (audioWsConfig.customEndpoint || baseEndpoint) + "?agent=".concat(audioWsConfig.agentId, "&token=").concat(audioWsConfig.sessionToken, "&background_noise=").concat(audioWsConfig.backgroundNoise);
         _this.ws = new Websocket(endpoint);
         _this.ws.binaryType = "arraybuffer";
         _this.ws.onopen = function () {
