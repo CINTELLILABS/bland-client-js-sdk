@@ -50,10 +50,13 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
         if (op[0] & 5) throw op[1]; return { value: op[0] ? op[1] : void 0, done: true };
     }
 };
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.BlandWebClient = void 0;
 var eventemitter3_1 = require("eventemitter3");
-var isomorphic_ws_1 = require("isomorphic-ws");
+var isomorphic_ws_1 = __importDefault(require("isomorphic-ws"));
 var audioWorklet_1 = require("./audioWorklet");
 var baseEndpoint = "wss://stream.aws.dc5.bland.ai/ws/connect/blandshared";
 ;
