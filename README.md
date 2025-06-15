@@ -25,8 +25,10 @@ const sdk = new BlandWebClient(
 ### Start the conversation
 
 ```javascript
+const uniqueCallId = crypto.randomUUID();
 sdk.initConversation({
-    sampleRate: 44100
+    sampleRate: 44100,
+    callId:uniqueCallId,
 });
 ```
 
