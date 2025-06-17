@@ -1,6 +1,6 @@
 import { EventEmitter } from "eventemitter3";
 interface StartConversationConfig {
-    callId: string;
+    callId?: string;
     sampleRate: number;
     customStream?: MediaStream;
     enableUpdate?: boolean;
