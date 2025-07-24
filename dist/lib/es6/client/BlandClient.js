@@ -23,8 +23,8 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 var __generator = (this && this.__generator) || function (thisArg, body) {
-    var _ = { label: 0, sent: function() { if (t[0] & 1) throw t[1]; return t[1]; }, trys: [], ops: [] }, f, y, t, g;
-    return g = { next: verb(0), "throw": verb(1), "return": verb(2) }, typeof Symbol === "function" && (g[Symbol.iterator] = function() { return this; }), g;
+    var _ = { label: 0, sent: function() { if (t[0] & 1) throw t[1]; return t[1]; }, trys: [], ops: [] }, f, y, t, g = Object.create((typeof Iterator === "function" ? Iterator : Object).prototype);
+    return g.next = verb(0), g["throw"] = verb(1), g["return"] = verb(2), typeof Symbol === "function" && (g[Symbol.iterator] = function() { return this; }), g;
     function verb(n) { return function (v) { return step([n, v]); }; }
     function step(op) {
         if (f) throw new TypeError("Generator is already executing.");
@@ -87,7 +87,7 @@ var AudioWsClient = /** @class */ (function (_super) {
         _this.pingIntervalTime = 5000;
         _this.audioIndex = 0;
         _this.marks = [];
-        var endpoint = (audioWsConfig.customEndpoint || baseEndpoint) + "?agent=".concat(audioWsConfig.agentId, "&token=").concat(audioWsConfig.sessionToken, "&background_noise=").concat(audioWsConfig.backgroundNoise);
+        var endpoint = audioWsConfig.customEndpoint + "?agent=".concat(audioWsConfig.agentId, "&token=").concat(audioWsConfig.sessionToken, "&background_noise=").concat(audioWsConfig.backgroundNoise);
         _this.ws = new Websocket(endpoint);
         _this.ws.binaryType = "arraybuffer";
         _this.ws.onopen = function () {
@@ -198,6 +198,7 @@ var BlandWebClient = /** @class */ (function (_super) {
     function BlandWebClient(agentId, sessionToken, options) {
         var _this = _super.call(this) || this;
         _this.isCalling = false;
+        _this.customEndpoint = baseEndpoint;
         _this.backgroundNoise = true;
         // Others
         _this.captureNode = null;
@@ -207,9 +208,9 @@ var BlandWebClient = /** @class */ (function (_super) {
         _this.marks = [];
         _this.transcripts = [];
         _this.lastProcessId = "";
-        if (options.customEndpoint)
+        if (options === null || options === void 0 ? void 0 : options.customEndpoint)
             _this.customEndpoint = options.customEndpoint;
-        if (options.backgroundNoise !== undefined)
+        if ((options === null || options === void 0 ? void 0 : options.backgroundNoise) !== undefined)
             _this.backgroundNoise = options.backgroundNoise;
         _this.agentId = agentId;
         _this.sessionToken = sessionToken;
