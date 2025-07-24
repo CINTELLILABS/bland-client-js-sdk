@@ -23,8 +23,8 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 var __generator = (this && this.__generator) || function (thisArg, body) {
-    var _ = { label: 0, sent: function() { if (t[0] & 1) throw t[1]; return t[1]; }, trys: [], ops: [] }, f, y, t, g;
-    return g = { next: verb(0), "throw": verb(1), "return": verb(2) }, typeof Symbol === "function" && (g[Symbol.iterator] = function() { return this; }), g;
+    var _ = { label: 0, sent: function() { if (t[0] & 1) throw t[1]; return t[1]; }, trys: [], ops: [] }, f, y, t, g = Object.create((typeof Iterator === "function" ? Iterator : Object).prototype);
+    return g.next = verb(0), g["throw"] = verb(1), g["return"] = verb(2), typeof Symbol === "function" && (g[Symbol.iterator] = function() { return this; }), g;
     function verb(n) { return function (v) { return step([n, v]); }; }
     function step(op) {
         if (f) throw new TypeError("Generator is already executing.");
@@ -87,7 +87,8 @@ var AudioWsClient = /** @class */ (function (_super) {
         _this.pingIntervalTime = 5000;
         _this.audioIndex = 0;
         _this.marks = [];
-        var endpoint = (audioWsConfig.customEndpoint || baseEndpoint) + "?agent=".concat(audioWsConfig.agentId, "&token=").concat(audioWsConfig.sessionToken, "&background_noise=").concat(audioWsConfig.backgroundNoise);
+        var baseUrl = audioWsConfig.customEndpoint || baseEndpoint;
+        var endpoint = baseUrl + "?agent=".concat(audioWsConfig.agentId, "&token=").concat(audioWsConfig.sessionToken, "&background_noise=").concat(audioWsConfig.backgroundNoise);
         _this.ws = new Websocket(endpoint);
         _this.ws.binaryType = "arraybuffer";
         _this.ws.onopen = function () {
@@ -198,7 +199,16 @@ var BlandWebClient = /** @class */ (function (_super) {
     function BlandWebClient(agentId, sessionToken, options) {
         var _this = _super.call(this) || this;
         _this.isCalling = false;
+        _this.customEndpoint = baseEndpoint;
+        _this.region = "US";
         _this.backgroundNoise = true;
+        // Region mappings
+        _this.regionToDatacenter = {
+            "US": "dc5",
+            "canada": "dc9",
+            "asia": "dc10",
+            "europe": "dc11"
+        };
         // Others
         _this.captureNode = null;
         _this.audioData = [];
@@ -207,10 +217,12 @@ var BlandWebClient = /** @class */ (function (_super) {
         _this.marks = [];
         _this.transcripts = [];
         _this.lastProcessId = "";
-        if (options.customEndpoint)
+        if (options === null || options === void 0 ? void 0 : options.customEndpoint)
             _this.customEndpoint = options.customEndpoint;
-        if (options.backgroundNoise !== undefined)
+        if ((options === null || options === void 0 ? void 0 : options.backgroundNoise) !== undefined)
             _this.backgroundNoise = options.backgroundNoise;
+        if (options === null || options === void 0 ? void 0 : options.region)
+            _this.region = options.region;
         _this.agentId = agentId;
         _this.sessionToken = sessionToken;
         _this.isTalking = false;
@@ -220,7 +232,15 @@ var BlandWebClient = /** @class */ (function (_super) {
     BlandWebClient.prototype.isTalkingToAgent = function () {
         return this.isTalking;
     };
-    ;
+    BlandWebClient.prototype.setRegion = function (region) {
+        if (!this.regionToDatacenter[region]) {
+            throw new Error("Invalid region: ".concat(region, ". Valid regions are: ").concat(Object.keys(this.regionToDatacenter).join(', ')));
+        }
+        this.region = region;
+    };
+    BlandWebClient.prototype.getCurrentRegion = function () {
+        return this.region;
+    };
     // bland initialize();
     BlandWebClient.prototype.initConversation = function (config) {
         return __awaiter(this, void 0, void 0, function () {
@@ -234,7 +254,7 @@ var BlandWebClient = /** @class */ (function (_super) {
                         _a.sent();
                         this.liveClient = new AudioWsClient({
                             callId: "test",
-                            customEndpoint: this.customEndpoint,
+                            customEndpoint: this.getRegionalEndpoint(),
                             agentId: this.agentId,
                             sessionToken: this.sessionToken,
                             backgroundNoise: this.backgroundNoise
@@ -536,6 +556,16 @@ var BlandWebClient = /** @class */ (function (_super) {
         ;
     };
     ;
+    BlandWebClient.prototype.getRegionalEndpoint = function () {
+        if (this.customEndpoint !== baseEndpoint) {
+            // If a custom endpoint is provided, use it as-is
+            return this.customEndpoint;
+        }
+        var datacenter = this.regionToDatacenter[this.region];
+        // Use regex to replace the datacenter in the base endpoint
+        // Replace "dc5" (or any dcX pattern) with the regional datacenter
+        return baseEndpoint.replace(/dc\d+/, datacenter);
+    };
     return BlandWebClient;
 }(EventEmitter));
 export { BlandWebClient };

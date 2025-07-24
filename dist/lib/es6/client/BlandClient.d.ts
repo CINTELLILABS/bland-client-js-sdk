@@ -1,4 +1,5 @@
 import { EventEmitter } from "eventemitter3";
+type Region = "US" | "canada" | "asia" | "europe";
 interface StartConversationConfig {
     callId: string;
     sampleRate: number;
@@ -14,7 +15,9 @@ export declare class BlandWebClient extends EventEmitter {
     private gainNode;
     private audioNode;
     private customEndpoint;
+    private region;
     private backgroundNoise;
+    private regionToDatacenter;
     private captureNode;
     private audioData;
     private audioDataIndex;
@@ -27,8 +30,11 @@ export declare class BlandWebClient extends EventEmitter {
     constructor(agentId: string, sessionToken: string, options?: {
         customEndpoint?: string;
         backgroundNoise?: boolean;
+        region?: Region;
     });
     isTalkingToAgent(): boolean;
+    setRegion(region: Region): void;
+    getCurrentRegion(): Region;
     initConversation(config: StartConversationConfig): Promise<void>;
     stopConversation(): void;
     private setupAudioPlayback;
@@ -37,5 +43,6 @@ export declare class BlandWebClient extends EventEmitter {
     private clearMarkMessages;
     private isAudioWorkletSupported;
     private playAudio;
+    private getRegionalEndpoint;
 }
 export {};
