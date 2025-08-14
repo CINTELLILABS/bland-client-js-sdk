@@ -1,6 +1,6 @@
 {
   "name": "bland-client-js-sdk",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "main": "dist/lib/es6/index.js",
   "types": "dist/lib/es6/index.d.ts",
   "author": "Bland corp",
