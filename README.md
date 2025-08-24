@@ -26,7 +26,7 @@ const sdk = new BlandWebClient(
 
 ```javascript
 sdk.initConversation({
-    sampleRate: 44100
+    sampleRate: 44100,
 });
 ```
 
