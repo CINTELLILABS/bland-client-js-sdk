@@ -1,3 +1,5 @@
 **/node_modules
-**/src
 **/dist
+**/workbench
+node_modules
+.DS_Store
