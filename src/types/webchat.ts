@@ -1,6 +1,4 @@
-import Websocket from "isomorphic-ws";
-
-export type IWebchatState = Websocket.CLOSED | Websocket.CONNECTING | Websocket.OPEN | Websocket.CLOSING;
+export type IWebchatState = "closed" | "connecting" | "open" | "closing";
 
 export interface IWebchatConfiguration {
     agentId?: string

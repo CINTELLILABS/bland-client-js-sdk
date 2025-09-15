@@ -1,17 +1,65 @@
 {
   "name": "bland-client-js-sdk",
-  "version": "1.0.3",
-  "main": "dist/lib/es6/index.js",
-  "types": "dist/lib/es6/index.d.ts",
-  "author": "Bland corp",
+  "version": "2.0.0",
+  "description": "Bland client SDK for web and Node.",
   "license": "MIT",
+  "author": "Bland",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/CINTELLILABS/bland-client-js-sdk"
+  },
+  "homepage": "https://github.com/CINTELLILABS/bland-client-js-sdk#readme",
+  "bugs": {
+    "url": "https://github.com/CINTELLILABS/bland-client-js-sdk/issues"
+  },
+  "main": "dist/index.cjs",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.cjs"
+    },
+    "./webchat": {
+      "types": "./dist/webchat.d.ts",
+      "import": "./dist/webchat.mjs",
+      "require": "./dist/webchat.cjs"
+    },
+    "./react": {
+      "types": "./dist/react/index.d.ts",
+      "import": "./dist/react/index.mjs",
+      "require": "./dist/react/index.cjs"
+    },
+    "./browser": "./dist/browser/index.global.js"
+  },
+  "unpkg": "dist/browser/index.global.js",
+  "jsdelivr": "dist/browser/index.global.js",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "sideEffects": false,
+  "peerDependencies": {
+    "react": ">=18"
+  },
+  "engines": {
+    "node": ">=18"
+  },
   "scripts": {
-    "compile": "rm -rf dist/lib && rm -rf test/dist && tsc && tsc --build tsconfig.es5.json --force --watch"
+    "build": "tsdown",
+    "dev": "tsdown --watch",
+    "prepublishOnly": "npm run build"
+  },
+  "devDependencies": {
+    "@types/react": "^19.1.13",
+    "@types/react-dom": "^19.1.9",
+    "tsdown": "^0.3.0",
+    "typescript": "^5.5.0",
+    "unplugin-isolated-decl": "^0.15.1"
   },
   "dependencies": {
-    "eventemitter3": "^5.0.1",
-    "isomorphic-ws": "^5.0.0",
-    "react": "^18.3.1",
-    "typescript": "^5.4.5"
+    "isomorphic-ws": "^5.0.0"
   }
 }
