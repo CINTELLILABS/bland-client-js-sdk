@@ -26,6 +26,11 @@ class Webchat extends Base implements IWebchatPublic {
   private micNode: AudioWorkletNode | null = null;
   private sinkGain: GainNode | null = null;
 
+  private playbackLead = 0.15;
+  private nextPlaybackTime: number | null = null;
+  private pendingSources: AudioBufferSourceNode[] = [];
+  private downstreamSampleRate: number | null = null;
+
   constructor(options: any) {
     super(options);
     this.endpoint =
@@ -75,7 +80,12 @@ class Webchat extends Base implements IWebchatPublic {
 
     this.websocket.onopen = async (): Promise<void> => {
       try {
-        await this.initAudioWorklet(config.sampleRate);
+        await this.initAudioWorklet((config as any)?.sampleRate);
+        this.downstreamSampleRate =
+          (config as any)?.playbackSampleRate ||
+          (config as any)?.ttsSampleRate ||
+          (config as any)?.sampleRate ||
+          null;
         this.state = "open";
         this.keepAlive();
       } catch (e) {
@@ -87,9 +97,25 @@ class Webchat extends Base implements IWebchatPublic {
 
     this.websocket.onmessage = (evt: Websocket.MessageEvent): void => {
       this.setActivity();
-      if (evt.data instanceof ArrayBuffer) {
-        const u8 = new Uint8Array(evt.data as ArrayBuffer);
-        this.playPcm(u8);
+      const d: any = (evt as any).data;
+      if (typeof d === "string") {
+        try {
+          const m = JSON.parse(d);
+          const r =
+            m.playbackSampleRate ??
+            m.sample_rate ??
+            m.sampleRate ??
+            m.pcm_sample_rate;
+          if (typeof r === "number") this.downstreamSampleRate = r;
+        } catch {}
+        return;
+      }
+      if (d instanceof ArrayBuffer) {
+        this.playPcm(new Uint8Array(d));
+        return;
+      }
+      if (d && d.buffer instanceof ArrayBuffer) {
+        this.playPcm(new Uint8Array(d.buffer));
       }
     };
 
@@ -158,21 +184,41 @@ class Webchat extends Base implements IWebchatPublic {
   }
 
   private async initAudioWorklet(sampleRate?: number): Promise<void> {
-    this.audioContext = new AudioContext(sampleRate ? { sampleRate } : {});
+    this.audioContext = new AudioContext(
+      sampleRate
+        ? { sampleRate, latencyHint: "interactive" }
+        : { latencyHint: "interactive" }
+    );
     const code = `
-            class MicCaptureProcessor extends AudioWorkletProcessor {
-                process(inputs) {
-                    const ch = inputs[0] && inputs[0][0]
-                    if (ch) {
-                        const copy = new Float32Array(ch.length)
-                        copy.set(ch)
-                        this.port.postMessage(copy.buffer, [copy.buffer])
-                    }
-                    return true
-                }
+      class MicCaptureProcessor extends AudioWorkletProcessor {
+        constructor() {
+          super();
+          this._frame = Math.max(128, Math.floor(sampleRate * 0.02));
+          this._buf = new Float32Array(this._frame);
+          this._off = 0;
+        }
+        process(inputs) {
+          const ch = inputs[0] && inputs[0][0];
+          if (ch) {
+            let i = 0;
+            while (i < ch.length) {
+              const space = this._frame - this._off;
+              const toCopy = Math.min(space, ch.length - i);
+              this._buf.set(ch.subarray(i, i + toCopy), this._off);
+              this._off += toCopy;
+              i += toCopy;
+              if (this._off >= this._frame) {
+                const copy = new Float32Array(this._buf);
+                this.port.postMessage(copy.buffer, [copy.buffer]);
+                this._off = 0;
+              }
             }
-            registerProcessor('mic-capture', MicCaptureProcessor)
-        `;
+          }
+          return true;
+        }
+      }
+      registerProcessor('mic-capture', MicCaptureProcessor)
+    `;
     const blob = new Blob([code], { type: "application/javascript" });
     const url = URL.createObjectURL(blob);
     await this.audioContext.audioWorklet.addModule(url);
@@ -207,6 +253,20 @@ class Webchat extends Base implements IWebchatPublic {
   }
 
   private teardownAudio(): void {
+    if (this.pendingSources.length) {
+      try {
+        this.pendingSources.forEach((s) => {
+          try {
+            s.stop();
+          } catch {}
+          try {
+            s.disconnect();
+          } catch {}
+        });
+      } catch {}
+      this.pendingSources = [];
+    }
+    this.nextPlaybackTime = null;
     if (this.micNode) {
       try {
         this.micNode.disconnect();
@@ -259,16 +319,26 @@ class Webchat extends Base implements IWebchatPublic {
   private playPcm(u8: Uint8Array): void {
     if (!this.audioContext) return;
     const f32 = this.pcm16ToFloat32(u8);
-    const buffer = this.audioContext.createBuffer(
-      1,
-      f32.length,
-      this.audioContext.sampleRate
-    );
-    buffer.copyToChannel(new Float32Array(f32), 0, 0);
+    const sr = this.downstreamSampleRate || this.audioContext.sampleRate;
+    const buffer = this.audioContext.createBuffer(1, f32.length, sr);
+    buffer.copyToChannel(f32, 0, 0);
     const src = this.audioContext.createBufferSource();
     src.buffer = buffer;
     src.connect(this.audioContext.destination);
-    src.start();
+    const now = this.audioContext.currentTime;
+    if (this.nextPlaybackTime === null || this.nextPlaybackTime < now + 0.005) {
+      this.nextPlaybackTime = now + this.playbackLead;
+    }
+    src.start(this.nextPlaybackTime);
+    this.pendingSources.push(src);
+    this.nextPlaybackTime += buffer.duration;
+    src.onended = () => {
+      const i = this.pendingSources.indexOf(src);
+      if (i >= 0) this.pendingSources.splice(i, 1);
+      try {
+        src.disconnect();
+      } catch {}
+    };
   }
 }
 
