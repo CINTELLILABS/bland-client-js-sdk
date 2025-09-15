@@ -22,6 +22,10 @@ export default defineConfig([
     minify: true,
     platform: "browser",
     outDir: "dist",
-    outputOptions: { name: "Bland" },
+    outputOptions: {
+      name: "Bland",
+      exports: "named",
+      globals: { "isomorphic-ws": "WebSocket" },
+    },
   },
 ]);

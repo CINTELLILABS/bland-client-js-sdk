@@ -1,6 +1,21 @@
 import Base from "../base";
 
-class AdminSdk extends Base {
+export interface IAdminSdk {
+  sessions: {
+    create: (args: {
+      phoneNumber: string;
+      requestData?: Record<string, any>;
+    }) => Promise<{ token: string; expires_at: string }>;
+  };
+  agents: {
+    authorize: (args: {
+      agentId: string;
+      context?: Record<string, any>;
+    }) => Promise<{ token: string; expires_at?: string }>;
+  };
+}
+
+class AdminSdk extends Base implements IAdminSdk {
   routes: { [x: string]: { path: string; method: string } };
 
   constructor(options: any) {
@@ -12,13 +27,16 @@ class AdminSdk extends Base {
     this.endpoint = options?.endpoint || "https://api.bland.ai";
   }
 
-  private async request(path: string, method = "GET", body: any = null) {
+  private async request(
+    path: string,
+    method: string = "GET",
+    body: any = null
+  ): Promise<any> {
     if (!this.endpoint) throw new Error("Admin SDK endpoint is not set");
     const url = `${this.endpoint}${path}`;
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
     };
-
     if (this.admin?.apiKey) {
       headers["authorization"] = `${this.admin.apiKey}`;
     } else {

@@ -6,7 +6,13 @@ import {
 import Base from "../base";
 import Websocket from "isomorphic-ws";
 
-class Webchat extends Base {
+interface IWebchatPublic {
+  state: IWebchatState;
+  start: (config: IWebchatConfiguration) => Promise<Websocket>;
+  stop: () => void;
+}
+
+class Webchat extends Base implements IWebchatPublic {
   state: IWebchatState;
   private connectionUrl: string | null = null;
   private websocket: Websocket | null = null;
@@ -32,7 +38,7 @@ class Webchat extends Base {
 
   private params(
     params: Record<string, string | boolean | number | undefined>
-  ) {
+  ): string {
     const q = new URLSearchParams();
     for (const [k, v] of Object.entries(params)) {
       if (v !== undefined && v !== null) q.append(k, String(v));
@@ -40,7 +46,7 @@ class Webchat extends Base {
     return q.toString();
   }
 
-  public async start(config: IWebchatConfiguration) {
+  public async start(config: IWebchatConfiguration): Promise<Websocket> {
     if (this.state !== "closed") throw new Error("Webchat already started");
     this.state = "connecting";
 
@@ -67,7 +73,7 @@ class Webchat extends Base {
     this.websocket = this.create();
     this.websocket.binaryType = "arraybuffer";
 
-    this.websocket.onopen = async () => {
+    this.websocket.onopen = async (): Promise<void> => {
       try {
         await this.initAudioWorklet(config.sampleRate);
         this.state = "open";
@@ -79,7 +85,7 @@ class Webchat extends Base {
       }
     };
 
-    this.websocket.onmessage = (evt: Websocket.MessageEvent) => {
+    this.websocket.onmessage = (evt: Websocket.MessageEvent): void => {
       this.setActivity();
       if (evt.data instanceof ArrayBuffer) {
         const u8 = new Uint8Array(evt.data as ArrayBuffer);
@@ -87,22 +93,22 @@ class Webchat extends Base {
       }
     };
 
-    this.websocket.onclose = () => {
+    this.websocket.onclose = (): void => {
       this.keepAlive(true);
       this.teardownAudio();
       this.state = "closed";
     };
 
-    this.websocket.onerror = () => {
+    this.websocket.onerror = (): void => {
       this.keepAlive(true);
       this.teardownAudio();
       this.state = "closed";
     };
 
-    return this.websocket;
+    return this.websocket as Websocket;
   }
 
-  private create() {
+  private create(): Websocket {
     if (!this.connectionUrl) {
       this.state = "closed";
       throw new Error(
@@ -114,7 +120,7 @@ class Webchat extends Base {
     return this.websocket;
   }
 
-  public stop() {
+  public stop(): void {
     if (
       this.websocket &&
       (this.websocket.readyState === this.websocket.OPEN ||
@@ -127,7 +133,7 @@ class Webchat extends Base {
     this.teardownAudio();
   }
 
-  private keepAlive(stop?: boolean) {
+  private keepAlive(stop?: boolean): void {
     if (stop) {
       if (this.keepAliveInterval) clearInterval(this.keepAliveInterval);
       this.keepAliveInterval = null;
@@ -135,7 +141,7 @@ class Webchat extends Base {
     } else {
       this.lastActivityAt = Date.now();
       if (this.keepAliveInterval) clearInterval(this.keepAliveInterval);
-      this.keepAliveInterval = setInterval(() => {
+      this.keepAliveInterval = setInterval((): void => {
         if (
           this.lastActivityAt &&
           Date.now() - this.lastActivityAt > this.wsSettings.timeout
@@ -147,11 +153,11 @@ class Webchat extends Base {
     }
   }
 
-  private setActivity() {
+  private setActivity(): void {
     this.lastActivityAt = Date.now();
   }
 
-  private async initAudioWorklet(sampleRate?: number) {
+  private async initAudioWorklet(sampleRate?: number): Promise<void> {
     this.audioContext = new AudioContext(sampleRate ? { sampleRate } : {});
     const code = `
             class MicCaptureProcessor extends AudioWorkletProcessor {
@@ -173,7 +179,7 @@ class Webchat extends Base {
     URL.revokeObjectURL(url);
 
     this.micNode = new AudioWorkletNode(this.audioContext, "mic-capture");
-    this.micNode.port.onmessage = (e: MessageEvent) => {
+    this.micNode.port.onmessage = (e: MessageEvent): void => {
       if (!this.websocket || this.websocket.readyState !== this.websocket.OPEN)
         return;
       const f32 = new Float32Array(e.data as ArrayBuffer);
@@ -200,7 +206,7 @@ class Webchat extends Base {
     await this.audioContext.resume();
   }
 
-  private teardownAudio() {
+  private teardownAudio(): void {
     if (this.micNode) {
       try {
         this.micNode.disconnect();
@@ -230,7 +236,7 @@ class Webchat extends Base {
     }
   }
 
-  private float32ToPCM16(f32: Float32Array) {
+  private float32ToPCM16(f32: Float32Array): Uint8Array {
     const out = new Int16Array(f32.length);
     for (let i = 0; i < f32.length; i++) {
       const s = Math.max(-1, Math.min(1, f32[i]));
@@ -239,7 +245,7 @@ class Webchat extends Base {
     return new Uint8Array(out.buffer);
   }
 
-  private pcm16ToFloat32(u8: Uint8Array) {
+  private pcm16ToFloat32(u8: Uint8Array): Float32Array {
     const dv = new DataView(u8.buffer, u8.byteOffset, u8.byteLength);
     const len = u8.byteLength / 2;
     const f32 = new Float32Array(len);
@@ -250,7 +256,7 @@ class Webchat extends Base {
     return f32;
   }
 
-  private playPcm(u8: Uint8Array) {
+  private playPcm(u8: Uint8Array): void {
     if (!this.audioContext) return;
     const f32 = this.pcm16ToFloat32(u8);
     const buffer = this.audioContext.createBuffer(
@@ -258,7 +264,7 @@ class Webchat extends Base {
       f32.length,
       this.audioContext.sampleRate
     );
-    buffer.copyToChannel(f32, 0, 0);
+    buffer.copyToChannel(new Float32Array(f32), 0, 0);
     const src = this.audioContext.createBufferSource();
     src.buffer = buffer;
     src.connect(this.audioContext.destination);
@@ -266,4 +272,5 @@ class Webchat extends Base {
   }
 }
 
+export type { IWebchatPublic };
 export default Webchat;

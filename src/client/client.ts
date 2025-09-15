@@ -1,4 +1,6 @@
 import { BlandClientOptions } from "../types/client";
+import type { IAdminSdk } from "./admin/admin";
+import type { IWebchatPublic } from "./webchat/webchat";
 
 class Bland {
   admin: BlandClientOptions["admin"];
@@ -10,16 +12,18 @@ class Bland {
     this.webchat = options.webchat;
   }
 
-  public async AdminClient() {
+  public async AdminClient(): Promise<IAdminSdk> {
     const mod = await import("./admin/admin");
-    const AdminSdk = mod.default;
-    return /* @__PURE__ */ new AdminSdk(this.admin);
+    const Admin = mod.default;
+    const inst: IAdminSdk = new Admin(this);
+    return inst;
   }
 
-  public async WebchatClient() {
+  public async WebchatClient(): Promise<IWebchatPublic> {
     const mod = await import("./webchat/webchat");
     const Webchat = mod.default;
-    return /* @__PURE__ */ new Webchat(this.webchat);
+    const inst: IWebchatPublic = new Webchat(this);
+    return inst;
   }
 }
 
