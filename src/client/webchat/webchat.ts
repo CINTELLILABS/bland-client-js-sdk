@@ -6,10 +6,32 @@ import {
 import Base from "../base";
 import Websocket from "isomorphic-ws";
 
+type Unsubscribe = () => void;
+
+interface WebchatEventMap {
+  open: undefined;
+  closed: undefined;
+  error: unknown;
+  text: string;
+  message: any;
+  update: any;
+  unknown: any;
+}
+
 interface IWebchatPublic {
   state: IWebchatState;
   start: (config: IWebchatConfiguration) => Promise<Websocket>;
   stop: () => void;
+  on<K extends keyof WebchatEventMap>(
+    event: K,
+    handler: (data: WebchatEventMap[K]) => void
+  ): Unsubscribe;
+  on(event: string, handler: (data: any) => void): Unsubscribe;
+  off<K extends keyof WebchatEventMap>(
+    event: K,
+    handler: (data: WebchatEventMap[K]) => void
+  ): void;
+  off(event: string, handler: (data: any) => void): void;
 }
 
 class Webchat extends Base implements IWebchatPublic {
@@ -30,6 +52,8 @@ class Webchat extends Base implements IWebchatPublic {
   private nextPlaybackTime: number | null = null;
   private pendingSources: AudioBufferSourceNode[] = [];
   private downstreamSampleRate: number | null = null;
+
+  private listeners: Map<string, Set<(data: any) => void>> = new Map();
 
   constructor(options: any) {
     super(options);
@@ -88,6 +112,7 @@ class Webchat extends Base implements IWebchatPublic {
           null;
         this.state = "open";
         this.keepAlive();
+        this.emit("open", undefined);
       } catch (e) {
         this.state = "closed";
         this.stop();
@@ -99,6 +124,7 @@ class Webchat extends Base implements IWebchatPublic {
       this.setActivity();
       const d: any = (evt as any).data;
       if (typeof d === "string") {
+        this.emit("text", d);
         try {
           const m = JSON.parse(d);
           const r =
@@ -107,7 +133,12 @@ class Webchat extends Base implements IWebchatPublic {
             m.sampleRate ??
             m.pcm_sample_rate;
           if (typeof r === "number") this.downstreamSampleRate = r;
-        } catch {}
+          this.emit("message", m);
+          const name = m.event || m.type;
+          if (typeof name === "string") this.emit(name, m);
+        } catch (err) {
+          this.emit("error", { type: "parse-error", raw: d, error: err });
+        }
         return;
       }
       if (d instanceof ArrayBuffer) {
@@ -116,19 +147,23 @@ class Webchat extends Base implements IWebchatPublic {
       }
       if (d && d.buffer instanceof ArrayBuffer) {
         this.playPcm(new Uint8Array(d.buffer));
+        return;
       }
+      this.emit("unknown", d);
     };
 
     this.websocket.onclose = (): void => {
       this.keepAlive(true);
       this.teardownAudio();
       this.state = "closed";
+      this.emit("closed", undefined);
     };
 
-    this.websocket.onerror = (): void => {
+    this.websocket.onerror = (e: any): void => {
       this.keepAlive(true);
       this.teardownAudio();
       this.state = "closed";
+      this.emit("error", e);
     };
 
     return this.websocket as Websocket;
@@ -340,7 +375,44 @@ class Webchat extends Base implements IWebchatPublic {
       } catch {}
     };
   }
+
+  public on<K extends keyof WebchatEventMap>(
+    event: K,
+    handler: (data: WebchatEventMap[K]) => void
+  ): Unsubscribe;
+  public on(event: string, handler: (data: any) => void): Unsubscribe;
+  public on(event: string, handler: (data: any) => void): Unsubscribe {
+    let set = this.listeners.get(event);
+    if (!set) {
+      set = new Set();
+      this.listeners.set(event, set);
+    }
+    set.add(handler);
+    return () => this.off(event, handler);
+  }
+
+  public off<K extends keyof WebchatEventMap>(
+    event: K,
+    handler: (data: WebchatEventMap[K]) => void
+  ): void;
+  public off(event: string, handler: (data: any) => void): void;
+  public off(event: string, handler: (data: any) => void): void {
+    const set = this.listeners.get(event);
+    if (!set) return;
+    set.delete(handler);
+    if (set.size === 0) this.listeners.delete(event);
+  }
+
+  private emit(event: string, data: any): void {
+    const set = this.listeners.get(event);
+    if (!set) return;
+    for (const fn of Array.from(set)) {
+      try {
+        fn(data);
+      } catch {}
+    }
+  }
 }
 
-export type { IWebchatPublic };
+export type { IWebchatPublic, WebchatEventMap };
 export default Webchat;

@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>A Very Bland Workbench for Webcalls!</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    html,body{height:100%;margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif}
+    .wrap{max-width:760px;margin:0 auto;padding:24px}
+    h1{font-size:22px;margin:0 0 16px}
+    .row{display:flex;gap:8px;align-items:center;margin:12px 0}
+    input,select,button{font:inherit;padding:8px 10px}
+    button{cursor:pointer}
+    #status{padding:8px 10px;background:#f5f5f5;border-radius:6px;margin-top:12px;word-break:break-word}
+    #log{white-space:pre-wrap;font-family:ui-monospace,Menlo,Consolas,monospace;background:#0b1020;color:#e6edf3;padding:12px;border-radius:6px;margin-top:12px;max-height:320px;overflow:auto}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>A Very Bland Workbench for Webcalls!</h1>
+    <div class="row">
+      <label for="agentId">Agent</label>
+      <input id="agentId" value="abc123" />
+      <label for="sampleRate">Sample rate</label>
+      <select id="sampleRate">
+        <option value="">auto</option>
+        <option value="8000">8000</option>
+        <option value="11025">11025</option>
+        <option value="16000">16000</option>
+        <option value="22050">22050</option>
+        <option value="24000">24000</option>
+        <option value="32000">32000</option>
+        <option value="44100">44100</option>
+        <option value="48000">48000</option>
+        <option value="96000">96000</option>
+        <option value="192000">192000</option>
+      </select>
+      <button id="start">Start</button>
+      <button id="stop" disabled>Stop</button>
+    </div>
+    <div id="status">idle</div>
+    <div id="log"></div>
+  </div>
+
+  <script src="/sdk/index.global.js"></script>
+  <script>
+    const statusEl = document.getElementById("status");
+    const logEl = document.getElementById("log");
+    const startBtn = document.getElementById("start");
+    const stopBtn = document.getElementById("stop");
+    const sampleRateEl = document.getElementById("sampleRate");
+    const agentEl = document.getElementById("agentId");
+    let webchat = null;
+
+    function setStatus(s){ statusEl.textContent = s }
+    function log(line){ const ts = new Date().toISOString(); logEl.textContent += `[${ts}] ${line}\n`; logEl.scrollTop = logEl.scrollHeight }
+
+    async function authorizeAgent(agentId){
+      const r = await fetch("/api/agent-authorize", { method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify({ agentId }) });
+      if(!r.ok){ throw new Error(`authorize error ${r.status}`) }
+      return r.json();
+    }
+
+    function attachListeners(instance){
+      const unsub = [];
+      unsub.push(instance.on("open", () => { setStatus("open"); log("[Websocket][open]") }));
+      unsub.push(instance.on("closed", () => { setStatus("closed"); log("[Websocket][closed]"); webchat.stop(); startBtn.disabled = false; stopBtn.disabled = true; }));
+      unsub.push(instance.on("error", (e) => { setStatus("closed"); log(`[Websocket][error] ${stringify(e)}`) }));
+      unsub.push(instance.on("text", (raw) => log(`[Websocket][text] ${raw}`)));
+      unsub.push(instance.on("message", (m) => log(`[Websocket][message] ${JSON.stringify(m)}`)));
+      unsub.push(instance.on("update", (m) => log(`[Websocket][update] ${JSON.stringify(m)}`)));
+      unsub.push(instance.on("unknown", (d) => log(`[Websocket][unknown] ${stringify(d)}`)));
+      return () => unsub.forEach(fn => { try { fn() } catch {} });
+    }
+
+    function stringify(v){
+      try { return typeof v === "string" ? v : JSON.stringify(v) } catch { return String(v) }
+    }
+
+    startBtn.addEventListener("click", async () => {
+      try {
+        startBtn.disabled = true;
+        const agentId = agentEl.value.trim();
+        if(!agentId){ throw new Error("missing agentId") }
+        setStatus("authorizing");
+        const auth = await authorizeAgent(agentId);
+        const sr = sampleRateEl.value ? Number(sampleRateEl.value) : undefined;
+
+        const { Webchat } = window.Bland;
+        webchat = new Webchat({});
+        const detach = attachListeners(webchat);
+
+        setStatus("connecting");
+        await webchat.start({
+          sessionId: auth.token,
+          agentId,
+          sampleRate: sr,
+          playbackSampleRate: sr
+        });
+
+        stopBtn.disabled = false;
+
+        stopBtn.onclick = () => {
+          try { if(webchat) webchat.stop() } finally {
+            detach();
+            setStatus("closed");
+            startBtn.disabled = false;
+            stopBtn.disabled = true;
+          }
+        };
+      } catch (e) {
+        setStatus("closed");
+        log(String(e));
+        startBtn.disabled = false;
+        stopBtn.disabled = true;
+      }
+    });
+
+    stopBtn.addEventListener("click", () => {
+      try { if(webchat) webchat.stop() } finally {
+        setStatus("closed"); startBtn.disabled = false; stopBtn.disabled = true;
+      }
+    });
+  </script>
+</body>
+</html>
