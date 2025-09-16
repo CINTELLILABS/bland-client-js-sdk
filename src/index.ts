@@ -8,5 +8,5 @@ export type {
   IWebchatWSSettings,
 } from "./types/webchat";
 
-export { Webchat, Bland };
+export { Webchat };
 export default Bland;

@@ -13,7 +13,7 @@ const distRoot = path.resolve(__dirname, "../../dist");
 const browserBundleDir = path.join(distRoot, "browser");
 
 const sdkEntry = path.join(distRoot, "index.mjs");
-const { default: Bland } = await import(`file://${sdkEntry}`);
+const {default: Bland} = await import(`file://${sdkEntry}`);
 
 const bland = new Bland({
   admin: {
