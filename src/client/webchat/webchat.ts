@@ -123,6 +123,7 @@ class Webchat extends Base implements IWebchatPublic {
     this.websocket.onmessage = (evt: Websocket.MessageEvent): void => {
       this.setActivity();
       const d: any = (evt as any).data;
+      console.log(evt);
       if (typeof d === "string") {
         this.emit("text", d);
         try {

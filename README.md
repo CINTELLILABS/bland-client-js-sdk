@@ -1,6 +1,10 @@
-# Bland Client JS SDK
+# @blandsdk/client
 
-The BlandJS SDK Client is a lightweight and straightforward JavaScript software development kit designed to streamline API calls within web applications.
+The Bland SDK is a JavaScript/TypeScript SDK for integrating with the Bland platform. It provides both server-side and client-side components to facilitate communication with Bland's services.
+
+[![npm version](https://img.shields.io/npm/v/@blandsdk/js.svg)](https://www.npmjs.com/package/@blandsdk/client)
+[![npm downloads](https://img.shields.io/npm/dm/@blandsdk/js.svg)](https://www.npmjs.com/package/@blandsdk/client)
+[![license](https://img.shields.io/npm/l/@blandsdk/js.svg)](https://www.npmjs.com/package/@blandsdk/client)
 
 ## Getting Started
 
@@ -10,7 +14,7 @@ The Bland SDK has two components:
 
 ## Installation
 ```bash
-npm install bland-client-js-sdk
+npm install @blandsdk/client
 ```
 
 ## Overview
@@ -30,7 +34,7 @@ The Admin SDK is used to create sessions for agents. Below is an example of an E
 ```ts
 import express from "express";
 import bodyParser from "body-parser";
-import Bland from "bland-client-js-sdk";
+import Bland from "@blandsdk/client";
 
 const app = express();
 app.use(bodyParser.json());
@@ -71,7 +75,7 @@ Here is a minimal example that requests a session token from your Admin SDK, con
 
 ```tsx
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useWebchat } from "bland-client-js-sdk/react";
+import { useWebchat } from "@blandsdk/client/react";
 
 type Token = { token: string };
 

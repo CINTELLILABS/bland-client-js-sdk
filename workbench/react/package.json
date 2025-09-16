@@ -10,7 +10,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "bland-client-js-sdk": "file:../..",
+    "@blandsdk/client": "file:../..",
     "react": "^19.1.1",
     "react-dom": "^19.1.1"
   },

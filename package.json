@@ -1,9 +1,10 @@
 {
-  "name": "bland-client-js-sdk",
-  "version": "2.1.2",
-  "description": "Bland client SDK for web and Node.",
+  "name": "@blandsdk/client",
+  "version": "1.0.0",
+  "description": "Bland client SDK for Node, React, and Vanilla JS.",
   "license": "MIT",
   "author": "Bland",
+  "public": true,
   "repository": {
     "type": "git",
     "url": "https://github.com/CINTELLILABS/bland-client-js-sdk"
@@ -50,8 +51,7 @@
   "scripts": {
     "build": "tsdown",
     "dev": "tsdown --watch",
-    "prepublishOnly": "npm run build",
-    "publish": "npm run build && npm publish"
+    "prepublishOnly": "npm run build"
   },
   "devDependencies": {
     "@types/react": "^19.1.13",

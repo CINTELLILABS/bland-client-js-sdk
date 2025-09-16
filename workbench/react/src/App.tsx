@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useWebchat } from "bland-client-js-sdk/react";
+import { useWebchat } from "@blandsdk/client/react";
 
 type Token = { token: string };
 
