@@ -24,12 +24,12 @@ interface IWebchatPublic {
   stop: () => void;
   on<K extends keyof WebchatEventMap>(
     event: K,
-    handler: (data: WebchatEventMap[K]) => void
+    handler: (data: WebchatEventMap[K]) => void,
   ): Unsubscribe;
   on(event: string, handler: (data: any) => void): Unsubscribe;
   off<K extends keyof WebchatEventMap>(
     event: K,
-    handler: (data: WebchatEventMap[K]) => void
+    handler: (data: WebchatEventMap[K]) => void,
   ): void;
   off(event: string, handler: (data: any) => void): void;
 }
@@ -66,7 +66,7 @@ class Webchat extends Base implements IWebchatPublic {
   }
 
   private params(
-    params: Record<string, string | boolean | number | undefined>
+    params: Record<string, string | boolean | number | undefined>,
   ): string {
     const q = new URLSearchParams();
     for (const [k, v] of Object.entries(params)) {
@@ -82,20 +82,26 @@ class Webchat extends Base implements IWebchatPublic {
     if (!config.sessionId) {
       this.state = "closed";
       throw new Error(
-        "A session token is required to start the webchat. Please use the admin client server-side to generate a session token."
+        "A session token is required to start the webchat. Please use the admin client server-side to generate a session token.",
       );
     }
 
     if (!config.agentId) {
       this.state = "closed";
       throw new Error(
-        "An agent ID is required to start the webchat. Please create an agent in the dashboard, and use the agent ID here."
+        "An agent ID is required to start the webchat. Please create an agent in the dashboard, and use the agent ID here.",
       );
     }
+
+    const targetSampleRate =
+      config.sampleRate !== undefined
+        ? config.sampleRate
+        : this.getBrowserTargetSampleRate();
 
     const wssUrl = `${this.endpoint}?${this.params({
       agent: config.agentId,
       token: config.sessionId,
+      sampleRate: targetSampleRate,
     })}`;
 
     this.connectionUrl = wssUrl;
@@ -104,11 +110,11 @@ class Webchat extends Base implements IWebchatPublic {
 
     this.websocket.onopen = async (): Promise<void> => {
       try {
-        await this.initAudioWorklet((config as any)?.sampleRate);
+        await this.initAudioWorklet(targetSampleRate);
         this.downstreamSampleRate =
           (config as any)?.playbackSampleRate ||
           (config as any)?.ttsSampleRate ||
-          (config as any)?.sampleRate ||
+          targetSampleRate ||
           null;
         this.state = "open";
         this.keepAlive();
@@ -174,7 +180,7 @@ class Webchat extends Base implements IWebchatPublic {
     if (!this.connectionUrl) {
       this.state = "closed";
       throw new Error(
-        "Connection URL is not set. Please call start() before creating the websocket connection."
+        "Connection URL is not set. Please call start() before creating the websocket connection.",
       );
     }
 
@@ -223,7 +229,7 @@ class Webchat extends Base implements IWebchatPublic {
     this.audioContext = new AudioContext(
       sampleRate
         ? { sampleRate, latencyHint: "interactive" }
-        : { latencyHint: "interactive" }
+        : { latencyHint: "interactive" },
     );
     const code = `
       class MicCaptureProcessor extends AudioWorkletProcessor {
@@ -379,7 +385,7 @@ class Webchat extends Base implements IWebchatPublic {
 
   public on<K extends keyof WebchatEventMap>(
     event: K,
-    handler: (data: WebchatEventMap[K]) => void
+    handler: (data: WebchatEventMap[K]) => void,
   ): Unsubscribe;
   public on(event: string, handler: (data: any) => void): Unsubscribe;
   public on(event: string, handler: (data: any) => void): Unsubscribe {
@@ -394,7 +400,7 @@ class Webchat extends Base implements IWebchatPublic {
 
   public off<K extends keyof WebchatEventMap>(
     event: K,
-    handler: (data: WebchatEventMap[K]) => void
+    handler: (data: WebchatEventMap[K]) => void,
   ): void;
   public off(event: string, handler: (data: any) => void): void;
   public off(event: string, handler: (data: any) => void): void {
@@ -412,6 +418,17 @@ class Webchat extends Base implements IWebchatPublic {
         fn(data);
       } catch {}
     }
+  }
+
+  private getBrowserTargetSampleRate(): number | undefined {
+    if (typeof window === "undefined") {
+      return undefined;
+    }
+    const tempAudioContext = new window.AudioContext();
+    const targetSampleRate = tempAudioContext.sampleRate;
+    tempAudioContext.close();
+
+    return targetSampleRate;
   }
 }
 
