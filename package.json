@@ -1,6 +1,6 @@
 {
   "name": "@blandsdk/client",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Bland client SDK for Node, React, and Vanilla JS.",
   "license": "MIT",
   "author": "Bland",
