@@ -12,7 +12,7 @@
   "dependencies": {
     "@blandsdk/client": "file:../..",
     "react": "^19.1.1",
-    "react-dom": "^19.1.1"
+    "react-dom": "^19.2.4"
   },
   "devDependencies": {
     "@eslint/js": "^9.33.0",
